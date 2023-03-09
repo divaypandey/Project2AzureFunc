@@ -18,11 +18,11 @@ namespace Project2AzureFunc
         private static ITransactionService transactionService = new TransactionService();
 
         [FunctionName("Transaction")]
-        public static async Task<IActionResult> Run(
+        public static async Task<IActionResult> RunTransaction(
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-            log.LogInformation("C# HTTP trigger function processed a request.");
+            log.LogInformation("C# HTTP trigger function for new transaction hit");
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             TransactionRequest request = JsonConvert.DeserializeObject<TransactionRequest>(requestBody);
@@ -45,20 +45,23 @@ namespace Project2AzureFunc
             }
         }
 
-        /*
-         wallet table:
-        acc id
-        acc balance
-        other rev details
+        [FunctionName("Account")]
+        public static async Task<IActionResult> RunAccount(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = null)] HttpRequest req,
+            ILogger log)
+        {
+            log.LogInformation("C# HTTP trigger function for new account hit");
 
-        trans table:
-        tr id
-        amount
-        direction
-        acc id
-        timestamp
-
-         
-         */
+            string query = req.Query["accountID"];
+            int accountID = int.Parse(query);
+            WalletAccount account = await accountService.GetAccountByID(accountID);
+            if (account is not null) return new OkObjectResult($"Account already exists with ID: '{account.AccountID}'");
+            else
+            {
+                account = await accountService.CreateAccount(accountID);
+                if (account is not null) return new OkObjectResult($"Account created with ID: '{account.AccountID}'");
+                else return new BadRequestObjectResult("Something went wrong while trying to process this request :(");
+            }
+        }
     }
 }
