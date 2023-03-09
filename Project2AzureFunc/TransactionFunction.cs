@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -15,11 +14,12 @@ namespace Project2AzureFunc
 {
     public static class TransactionFunction
     {
-        private static AccountService accountService = new();
+        private static IAccountService accountService = new AccountService();
+        private static ITransactionService transactionService = new TransactionService();
 
         [FunctionName("Transaction")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
             log.LogInformation("C# HTTP trigger function processed a request.");
@@ -31,14 +31,14 @@ namespace Project2AzureFunc
             if (account == null) return new NotFoundObjectResult($"Account with ID: '{request.Account}' not found!");
             else
             {
-                if (request.Direction.Equals(TransactionDirection.DEBIT) && (account.Balance - request.Amount > 0))
+                if ((request.Direction.Equals(TransactionDirection.DEBIT) && (account.Balance - request.Amount > 0)) || request.Direction.Equals(TransactionDirection.CREDIT))
                 {
-
+                    Transaction transaction = transactionService.CreateTransaction(request);
+                    if (transaction is not null) return new OkObjectResult(transaction);
+                    else return new BadRequestObjectResult("Something went wrong while trying to process this request :(");
                 }
                 else return new BadRequestObjectResult($"Account with ID: '{account.AccountID}' does not have sufficient funds to debit '{request.Amount}'");
             }
-
-            return new OkObjectResult(request);
         }
 
         /*
