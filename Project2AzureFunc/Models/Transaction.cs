@@ -11,5 +11,7 @@ namespace Project2AzureFunc.Models
 
         //in UTC
         public DateTime TransactionOn { get; set; }
+
+        public int AccountID { get; set; }
     }
 }

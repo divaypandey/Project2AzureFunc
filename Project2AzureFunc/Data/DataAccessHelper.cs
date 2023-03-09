@@ -22,7 +22,7 @@ namespace Project2AzureFunc.Data
 
         internal DataAccessHelper() //read from ENV or default setup
         {
-            var currentDirectory = Directory.GetCurrentDirectory();
+            string currentDirectory = Directory.GetCurrentDirectory();
             connString = @$"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename={currentDirectory}\Data\Database.mdf;Integrated Security=True";
         }
 

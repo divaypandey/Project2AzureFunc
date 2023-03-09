@@ -16,7 +16,7 @@ namespace Project2AzureFunc.Services
     {
         private readonly IDataProvider dataProvider = new DataAccessHelper();
 
-        private WalletAccount DataSetToWalletAccount(DataSet result)
+        private static WalletAccount DataSetToWalletAccount(DataSet result)
         {
             if (result is null) return null;
 
@@ -35,7 +35,14 @@ namespace Project2AzureFunc.Services
 
         public async Task<WalletAccount> GetAccountByID(int accountID)
         {
-            return DataSetToWalletAccount(await dataProvider.HandleSQLAsync($"SELECT * FROM WalletTable WHERE AccountID = {accountID}"));
+            try
+            {
+                return DataSetToWalletAccount(await dataProvider.HandleSQLAsync($"SELECT * FROM WalletTable WHERE AccountID = {accountID}"));
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         public async Task<WalletAccount> CreateAccount(int accountID)
@@ -44,7 +51,7 @@ namespace Project2AzureFunc.Services
             if (account is not null) return account;
             else
             {
-                return DataSetToWalletAccount(dataProvider.HandleSQL($"INSERT INTO WalletTable (AccountID, CreatedOn) OUTPUT INSERTED.* VALUES ({account}, '{DateTime.UtcNow}')"));
+                return DataSetToWalletAccount(dataProvider.HandleSQL($"INSERT INTO WalletTable (AccountID, CreatedOn) OUTPUT INSERTED.* VALUES ({accountID}, '{DateTime.UtcNow}')"));
             }
         }
 

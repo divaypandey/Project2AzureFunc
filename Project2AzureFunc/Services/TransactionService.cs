@@ -2,11 +2,7 @@
 using Project2AzureFunc.Models;
 using Project2AzureFunc.Models.Requests;
 using System;
-using System.Collections.Generic;
 using System.Data;
-using System.Linq;
-using System.Security.Principal;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Project2AzureFunc.Services
@@ -15,12 +11,11 @@ namespace Project2AzureFunc.Services
     {
         Transaction CreateTransaction(TransactionRequest request);
         Task<Transaction> GetTransactionByID(Guid transactionID);
-        IEnumerable<Transaction> GetTransactionsForAccount(int accountID);
     }
     internal class TransactionService : ITransactionService
     {
         private readonly IDataProvider dataProvider = new DataAccessHelper();
-        private Transaction DataSetToTransaction(DataSet result)
+        private static Transaction DataSetToTransaction(DataSet result)
         {
             if (result is null) return null;
 
@@ -31,7 +26,8 @@ namespace Project2AzureFunc.Services
                 TransactionID = Guid.Parse(row["TransactionID"].ToString()),
                 Amount = float.Parse(row["Amount"].ToString()),
                 TransactionOn = DateTime.Parse(row["TransactionOn"].ToString()),
-                Direction = Enum.Parse<TransactionDirection>(row["Direction"].ToString(), true)
+                Direction = Enum.Parse<TransactionDirection>(row["Direction"].ToString(), true),
+                AccountID = int.Parse(row["AccountID"].ToString())
             };
 
             return transaction;
@@ -39,13 +35,31 @@ namespace Project2AzureFunc.Services
 
         public Transaction CreateTransaction(TransactionRequest request)
         {
-            DataSet result = dataProvider.HandleSQL($"INSERT INTO TransactionTable (TransactionID, Amount, Direction, TransactionOn) OUTPUT INSERTED.* VALUES ((NEWID(), {request.Amount}, '{request.Direction}', '{DateTime.UtcNow}')");
-            return DataSetToTransaction(result);
-        }
-
-        public IEnumerable<Transaction> GetTransactionsForAccount(int accountID)
-        {
-            throw new NotImplementedException();
+            /*
+             The DEBIT is also wrapped into its DB-level consistency check
+             */
+            if (request.Direction.Equals(TransactionDirection.CREDIT))
+            {
+                DataSet result = dataProvider.HandleSQL(@$"
+BEGIN
+UPDATE WalletTable SET Balance = (Balance + {request.Amount}) WHERE AccountID = {request.AccountID};
+INSERT INTO TransactionTable (TransactionID, Amount, Direction, TransactionOn, AccountID) OUTPUT INSERTED.* VALUES (NEWID(), {request.Amount}, '{request.Direction}', '{DateTime.UtcNow}', {request.AccountID})
+END");
+                return DataSetToTransaction(result);
+            }
+            else if (request.Direction.Equals(TransactionDirection.DEBIT))
+            {
+                DataSet result = dataProvider.HandleSQL(@$"
+DECLARE @BAL FLOAT;
+SET @BAL = (SELECT Balance FROM WalletTable WHERE AccountID = {request.AccountID});
+IF (@BAL - {request.Amount} >= 0)
+BEGIN
+UPDATE WalletTable SET Balance = (Balance - {request.Amount}) WHERE AccountID = {request.AccountID};
+INSERT INTO TransactionTable (TransactionID, Amount, Direction, TransactionOn, AccountID) OUTPUT INSERTED.* VALUES (NEWID(), {request.Amount}, '{request.Direction}', '{DateTime.UtcNow}', {request.AccountID})
+END");
+                return DataSetToTransaction(result);
+            }
+            else return null;
         }
 
         public async Task<Transaction> GetTransactionByID(Guid transactionID)

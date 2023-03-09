@@ -8,9 +8,8 @@
 
     public record TransactionRequest
     {
-        public int Id { get; set; }
         public float Amount { get; set; }
         public TransactionDirection Direction { get; set; }
-        public int Account { get; set; }
+        public int AccountID { get; set; }
     }
 }

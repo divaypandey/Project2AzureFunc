@@ -12,12 +12,12 @@
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="Data\Database.mdf">
+    <EmbeddedResource Include="Data\Database.mdf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Data\Database_log.ldf">
+    </EmbeddedResource>
+    <EmbeddedResource Include="Data\Database_log.ldf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Resource>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
