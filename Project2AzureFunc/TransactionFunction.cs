@@ -34,7 +34,11 @@ namespace Project2AzureFunc
                 if ((request.Direction.Equals(TransactionDirection.DEBIT) && (account.Balance - request.Amount > 0)) || request.Direction.Equals(TransactionDirection.CREDIT))
                 {
                     Transaction transaction = transactionService.CreateTransaction(request);
-                    if (transaction is not null) return new OkObjectResult(transaction);
+                    if (transaction is not null)
+                    {
+                        accountService.UpdateLastTransactionDateToNow(request.Account);
+                        return new OkObjectResult(transaction);
+                    }
                     else return new BadRequestObjectResult("Something went wrong while trying to process this request :(");
                 }
                 else return new BadRequestObjectResult($"Account with ID: '{account.AccountID}' does not have sufficient funds to debit '{request.Amount}'");

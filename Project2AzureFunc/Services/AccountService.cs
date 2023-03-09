@@ -9,6 +9,7 @@ namespace Project2AzureFunc.Services
     interface IAccountService
     {
         Task<WalletAccount> GetAccountByID(int accountID);
+        void UpdateLastTransactionDateToNow(int accountID);
         Task<WalletAccount> CreateAccount(int accountID);
     }
     internal class AccountService : IAccountService
@@ -43,9 +44,13 @@ namespace Project2AzureFunc.Services
             if (account is not null) return account;
             else
             {
-                _ = dataProvider.HandleSQL($"INSERT INTO WalletTable (AccountID, CreatedOn) VALUES ({account}, '{DateTime.UtcNow}')");
-                return await GetAccountByID(accountID);
+                return DataSetToWalletAccount(dataProvider.HandleSQL($"INSERT INTO WalletTable (AccountID, CreatedOn) OUTPUT INSERTED.* VALUES ({account}, '{DateTime.UtcNow}')"));
             }
+        }
+
+        public void UpdateLastTransactionDateToNow(int accountID)
+        {
+            _ = dataProvider.HandleSQL($"UPDATE WalletTable SET LastTransactionOn = '{DateTime.UtcNow}' WHERE AccountID = {accountID}");
         }
     }
 }

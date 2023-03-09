@@ -14,6 +14,7 @@ namespace Project2AzureFunc.Services
     interface ITransactionService
     {
         Transaction CreateTransaction(TransactionRequest request);
+        Task<Transaction> GetTransactionByID(Guid transactionID);
         IEnumerable<Transaction> GetTransactionsForAccount(int accountID);
     }
     internal class TransactionService : ITransactionService
@@ -38,12 +39,18 @@ namespace Project2AzureFunc.Services
 
         public Transaction CreateTransaction(TransactionRequest request)
         {
-            throw new NotImplementedException();
+            DataSet result = dataProvider.HandleSQL($"INSERT INTO TransactionTable (TransactionID, Amount, Direction, TransactionOn) OUTPUT INSERTED.* VALUES ((NEWID(), {request.Amount}, '{request.Direction}', '{DateTime.UtcNow}')");
+            return DataSetToTransaction(result);
         }
 
         public IEnumerable<Transaction> GetTransactionsForAccount(int accountID)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<Transaction> GetTransactionByID(Guid transactionID)
+        {
+            return DataSetToTransaction(await dataProvider.HandleSQLAsync($"SELECT * FROM TransactionTable WHERE TransactionID = '{transactionID}'"));
         }
     }
 }
